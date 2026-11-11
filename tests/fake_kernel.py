@@ -3,6 +3,12 @@
 Keeps one globals dict alive and executes each request in it, like a kernel.
 `sys.stdout` is a router that sends writes to the request being served, the
 way ipykernel's stream routes output to the cell that produced it.
+
+Like ipykernel, the kernel tells the stream about a new request by calling
+`sys.stdout.set_parent(...)` on WHATEVER `sys.stdout` is at that moment. If
+user code replaced `sys.stdout` with an object without `set_parent`, the real
+stream keeps the previous request as its parent and output written to it goes
+to a reply nobody is waiting for.
 """
 import io
 import subprocess
@@ -14,6 +20,9 @@ from multiprocessing.connection import Listener
 class Router:
     def __init__(self):
         self.current = None
+
+    def set_parent(self, parent):
+        self.current = parent
 
     def write(self, text):
         if self.current is not None:
@@ -51,12 +60,14 @@ def main(address):
                 code = conn.recv()
                 if code is None:
                     return
-                buf = router.current = io.StringIO()
+                buf = io.StringIO()
+                for stream in (sys.stdout, sys.stderr):
+                    if hasattr(stream, "set_parent"):
+                        stream.set_parent(buf)
                 try:
                     exec(compile(translate(code), "<cell>", "exec"), scope)
                 except BaseException:
                     buf.write(traceback.format_exc())
-                router.current = None
                 conn.send(buf.getvalue())
 
 

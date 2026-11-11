@@ -165,6 +165,33 @@ class EndToEndTest(unittest.TestCase):
         self.assertIn("rc 124", out)
         self.assertLess(time.time() - t0, 20)
 
+    def test_output_arrives_while_the_cell_is_still_running(self):
+        gate = self.dir / "gate"
+        cell = ("import os, time\nprint('first line', flush=True)\n"
+                f"while not os.path.exists({str(gate)!r}):\n    time.sleep(0.02)\n"
+                "print('released')")
+        seen = {}
+
+        class Watch(io.StringIO):
+            def write(inner, text):
+                if "first line" in text and not seen:
+                    seen["live"] = True
+                    gate.write_text("go")          # only now may the cell finish
+                return super().write(text)
+
+        nb = notebook(self.dir / "n.ipynb", cell)
+        timeouts = self.dir / "t.json"
+        timeouts.write_text('{"0": 5}')
+        out = Watch()
+        with contextlib.redirect_stdout(out):
+            rc = runner.main([nb, "-s", "test", "--colab-bin", str(HERE / "bin" / "colab"),
+                              "--log-dir", str(self.dir / "logs"), "--poll", "0.05",
+                              "--timeouts", str(timeouts)])
+        self.assertEqual(rc, 0, out.getvalue())
+        self.assertTrue(seen.get("live"))
+        self.assertNotIn("poll failed", out.getvalue())
+        self.assertIn("released", out.getvalue())
+
     def test_cell_over_its_limit_stops_the_run(self):
         timeouts = self.dir / "t.json"
         timeouts.write_text('{"0": 0.3}')

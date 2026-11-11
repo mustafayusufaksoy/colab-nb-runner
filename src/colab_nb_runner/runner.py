@@ -55,19 +55,50 @@ def _nbrun_no_input(*a, **k):
                        f"{a!r} -- pass the value with a patch instead")
 _NBRUN_DIR = __DIR__
 _nbrun_os.makedirs(_NBRUN_DIR, exist_ok=True)
-if "_NBRUN" not in globals():
+import threading as _nbrun_th
+if "_NBRUN_LOG" not in globals():
     _NBRUN = {}                          # cell id -> {"state", "start"}
-    _NBRUN_OUT = _nbrun_sys.stdout       # polls write here
+    _NBRUN_LOG = {"file": None}          # log of the cell running right now
+    _NBRUN_OUT = _nbrun_sys.stdout       # the kernel's own stream; polls write here
+    class _NbrunStream:
+        """Stands in for sys.stdout/stderr: writes from cell threads go to the
+        running cell's log, everything else to the kernel's stream.
+
+        sys.stdout itself must stay an object the kernel can call set_parent()
+        on. MEASURED: when a cell thread swapped sys.stdout for a plain file,
+        the kernel could not tell its stream about the next request, so every
+        poll came back empty for as long as the cell ran.
+        """
+        def __init__(self, real):
+            self._real = real
+        def _target(self):
+            f = _NBRUN_LOG["file"]
+            if f is not None and _nbrun_th.current_thread() is not _nbrun_th.main_thread():
+                return f
+            return self._real
+        def write(self, text):
+            try:
+                return self._target().write(text)
+            except ValueError:           # log closed between the check and the write
+                return self._real.write(text)
+        def flush(self):
+            try:
+                return self._target().flush()
+            except ValueError:
+                return None
+        def __getattr__(self, name):
+            return getattr(self._real, name)
+    _nbrun_sys.stdout = _NbrunStream(_nbrun_sys.stdout)
+    _nbrun_sys.stderr = _NbrunStream(_nbrun_sys.stderr)
 print("@@NBRUN ready")
 '''
 
 START = r'''
-import threading as _nbrun_th, traceback as _nbrun_tb, time as _nbrun_t
+import traceback as _nbrun_tb, time as _nbrun_t
 _nbrun_b.input = _nbrun_g.getpass = _nbrun_no_input
 def _nbrun_work(no, code):
     f = open(f"{_NBRUN_DIR}/{no}.log", "a", buffering=1, encoding="utf-8")
-    old = (_nbrun_sys.stdout, _nbrun_sys.stderr)
-    _nbrun_sys.stdout = _nbrun_sys.stderr = f
+    _NBRUN_LOG["file"] = f
     try:
         _nbrun_b.input = _nbrun_g.getpass = _nbrun_no_input
         exec(compile(code, f"<{no}>", "exec"), globals())
@@ -82,7 +113,7 @@ def _nbrun_work(no, code):
             except Exception:
                 pass
     finally:
-        _nbrun_sys.stdout, _nbrun_sys.stderr = old
+        _NBRUN_LOG["file"] = None
         f.close()
 if __NO__ in _NBRUN:
     _NBRUN_OUT.write(f"@@NBRUN already {_NBRUN[__NO__]['state']}\n"); _NBRUN_OUT.flush()

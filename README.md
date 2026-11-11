@@ -23,6 +23,7 @@ The Colab CLI can execute Python in a session (`colab exec`), but it has no "run
 - Each cell is started in a **background thread in the kernel**. Its output goes to a log file in the VM.
 - The runner reads state and new output with **short polls**. A poll only reads, so it is retried freely after a drop.
 - Starting a cell is **idempotent**: after a lost reply the runner asks the kernel whether the cell already started before trying again.
+- `sys.stdout` stays an object the kernel can talk to; only writes from the cell's threads are routed to the log. Swapping `sys.stdout` for a plain file, the obvious way, makes every poll come back empty while the cell runs (measured, fixed in 0.1.1).
 - Every `colab` call has a wall-clock limit; a hung CLI process is killed and the call retried.
 - A cell fails on a non-zero exit code **or** a traceback in its output. The run stops at the first failing cell and exits `1`.
 
@@ -44,22 +45,18 @@ colab-nb-run notebook.ipynb -s mysession
 ```
 
 ```text
-=== CELL 2/3 (thread, limit 1800s) ===
-  .. poll failed (1 in a row, rc 0)
-adım ığüşöç 0
-adım ığüşöç 1
-adım ığüşöç 2
-adım ığüşöç 3
-[cell 2: 42.6s, ok]
+=== CELL 0/0 (thread, limit 1800s) ===
+tick 0 12:26:49
+tick 1 12:26:56
+tick 2 12:27:03
+...
+tick 8 12:27:45
+[cell 0: 68.9s, ok]
 
-=== CELL 3/3 (thread, limit 1800s) ===
-answer 42
-[cell 3: 13.2s, ok]
-
-=== NOTEBOOK DONE (1.6 min) ===
+=== NOTEBOOK DONE (1.1 min) ===
 ```
 
-That is a real run: one poll was lost and the output still arrived complete.
+Output arrives while the cell is still running, a few lines per poll.
 
 | Option | Meaning |
 |---|---|
@@ -86,8 +83,8 @@ On a Mac, run long jobs under `caffeinate -dimsu colab-nb-run ...`. When the mac
 
 ## Tested
 
-- 19 automated tests run the real runner against a fake kernel and a fake `colab` executable that drops replies, loses requests and hangs on demand. No Colab account needed: `python -m unittest discover -s tests`.
-- Checked by hand on a real CPU session with Colab CLI 0.7.4 (11 Nov 2026): state across cells, a magic cell, a failing cell and an `input()` call. The design comes from long GPU pipeline runs with CLI 0.6.0.
+- 20 automated tests run the real runner against a fake kernel and a fake `colab` executable that drops replies, loses requests and hangs on demand. No Colab account needed: `python -m unittest discover -s tests`.
+- Checked by hand on a real CPU session with Colab CLI 0.7.4 (11 Nov 2026): state across cells, a magic cell, a failing cell, an `input()` call and live output from a 60-second cell. Not yet re-run on a long GPU job since 0.1.1. The design comes from long GPU pipeline runs with CLI 0.6.0.
 - Not tested on Windows; it uses POSIX process groups.
 
 This is not an official Google project.
