@@ -1,0 +1,44 @@
+#!/usr/bin/env python3
+"""Fake `colab` executable for the tests: `colab [--config X] exec -s S -f FILE --timeout N`.
+
+Like the real CLI it exits 0 even when the code raised. FAKE_COLAB_FAULTS names
+a JSON file {"calls": 0, "faults": {"<call number>": "<mode>"}} with modes:
+  drop_before  report a lost connection, do not deliver the code
+  drop_after   deliver the code, then report a lost connection instead of output
+  hang         deliver nothing and never exit
+"""
+import json
+import os
+import sys
+import time
+from multiprocessing.connection import Client
+
+args = sys.argv[1:]
+if args[:1] == ["--config"]:
+    args = args[2:]
+assert args[0] == "exec", args
+code = open(args[args.index("-f") + 1], encoding="utf-8").read()
+
+mode = None
+faults_path = os.environ.get("FAKE_COLAB_FAULTS")
+if faults_path:
+    with open(faults_path, encoding="utf-8") as f:
+        state = json.load(f)
+    state["calls"] += 1
+    mode = state["faults"].get(str(state["calls"]))
+    with open(faults_path, "w", encoding="utf-8") as f:
+        json.dump(state, f)
+
+if mode == "hang":
+    time.sleep(600)
+if mode == "drop_before":
+    print("Error: Connection was lost")
+    sys.exit(1)
+with Client(os.environ["FAKE_COLAB_SOCKET"], family="AF_UNIX") as conn:
+    conn.send(code)
+    output = conn.recv()
+if mode == "drop_after":
+    print("Error: Connection was lost")
+    sys.exit(1)
+print("[colab] executing...")
+sys.stdout.write(output)

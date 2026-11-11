@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "colab-nb-runner"
+version = "0.1.0"
+description = "Run a Jupyter notebook cell by cell in a Google Colab CLI session, surviving dropped connections."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+keywords = ["colab", "google-colab", "colab-cli", "jupyter", "notebook", "ipynb", "automation", "gpu"]
+classifiers = [
+    "Framework :: Jupyter",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/mustafayusufaksoy/colab-nb-runner"
+Issues = "https://github.com/mustafayusufaksoy/colab-nb-runner/issues"
+
+[project.scripts]
+colab-nb-run = "colab_nb_runner.runner:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
