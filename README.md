@@ -5,6 +5,7 @@
 *Türkçe özet [aşağıda](#türkçe).*
 
 [![test](https://github.com/mustafayusufaksoy/colab-nb-runner/actions/workflows/test.yml/badge.svg)](https://github.com/mustafayusufaksoy/colab-nb-runner/actions/workflows/test.yml)
+[![PyPI](https://img.shields.io/pypi/v/colab-nb-runner.svg)](https://pypi.org/project/colab-nb-runner/)
 [![MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ## The problem
@@ -31,7 +32,7 @@ Kernel state carries over between cells, as with "Run all".
 
 ```bash
 uv tool install google-colab-cli      # the Colab CLI itself, then: colab new -s mysession --gpu T4
-pip install git+https://github.com/mustafayusufaksoy/colab-nb-runner
+pip install colab-nb-runner
 ```
 
 Python 3.9+, macOS or Linux, no dependencies. Needs the `colab` command on your `PATH`.
@@ -106,7 +107,7 @@ Colab CLI Python kodu çalıştırıyor ama `.ipynb` çalıştırmıyor. Hücrel
 Çözüm: hücre kernel'de arka plan iş parçacığında başlar ve çıktısını VM'deki bir dosyaya yazar. Çalıştırıcı kısa yoklamalarla durumu ve yeni satırları okur; yoklama yalnız okuduğu için kopunca rahatça tekrarlanır. Bir hücreyi yeniden başlatmadan önce kernel'e "zaten başladı mı" diye sorulur. İlk hatalı hücrede durur ve `1` ile çıkar.
 
 ```bash
-pip install git+https://github.com/mustafayusufaksoy/colab-nb-runner
+pip install colab-nb-runner
 colab-nb-run notebook.ipynb -s oturum
 ```
 
