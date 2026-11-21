@@ -1,0 +1,39 @@
+name: Bug report
+description: A run failed, hung, reported the wrong result, or ran a cell twice
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Never paste session state files, tokens or private notebook output. / Oturum dosyası, token ya da özel çıktı paylaşma.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: input
+    id: command
+    attributes:
+      label: Command
+      placeholder: "colab-nb-run notebook.ipynb -s mysession --default-timeout 3600"
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      placeholder: "colab-nb-runner 0.1.1, google-colab-cli x.y, Python 3.12, macOS 15"
+    validations:
+      required: true
+  - type: input
+    id: runtime
+    attributes:
+      label: Colab runtime
+      placeholder: "T4 GPU / CPU, session age, how long the failing cell runs"
+  - type: textarea
+    id: output
+    attributes:
+      label: Runner output
+      description: The relevant part of the output (redact anything private)
+      render: text
