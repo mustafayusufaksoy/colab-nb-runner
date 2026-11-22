@@ -6,6 +6,7 @@
 
 [![test](https://github.com/mustafayusufaksoy/colab-nb-runner/actions/workflows/test.yml/badge.svg)](https://github.com/mustafayusufaksoy/colab-nb-runner/actions/workflows/test.yml)
 [![PyPI](https://img.shields.io/pypi/v/colab-nb-runner.svg)](https://pypi.org/project/colab-nb-runner/)
+[![Downloads](https://static.pepy.tech/badge/colab-nb-runner)](https://pepy.tech/projects/colab-nb-runner)
 [![MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ## The problem
